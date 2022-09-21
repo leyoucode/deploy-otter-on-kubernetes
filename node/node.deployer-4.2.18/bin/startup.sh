@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash 
 
 current_path=`pwd`
 case "`uname`" in
@@ -10,19 +10,31 @@ case "`uname`" in
 		;;
 esac
 base=${bin_abs_path}/..
-otter_conf=$base/conf/otter.properties
+otterNodeIdFile=$base/conf/nid
 logback_configurationFile=$base/conf/logback.xml
-
 export LANG=en_US.UTF-8
-export BASE=$base
 
 if [ -f $base/bin/otter.pid ] ; then
 	echo "found otter.pid , Please run stop.sh first ,then startup.sh" 2>&2
     exit 1
 fi
 
-if [ ! -d $base/logs ] ; then 
-	mkdir -p $base/logs
+if [ ! -d $base/logs/node ] ; then 
+	mkdir -p $base/logs/node
+fi
+
+if [ -z "$ARIA2C" ]; then
+  ARIA2C=$(which aria2c)
+fi
+
+if [ -z "$ARIA2C" ]; then
+	source $HOME/.bash_profile
+	ARIA2C=$(which aria2c)
+	
+	if [ -z "$ARIA2C" ]; then
+		echo "Cannot find a aria2c. Please set in your PATH in .bash_profile." 2>&2
+		#exit 1;
+	fi
 fi
 
 ## set java path
@@ -34,15 +46,14 @@ ALIBABA_JAVA="/usr/alibaba/java/bin/java"
 TAOBAO_JAVA="/opt/taobao/java/bin/java"
 if [ -z "$JAVA" ]; then
   if [ -f $ALIBABA_JAVA ] ; then
-        JAVA=$ALIBABA_JAVA
-  elif [ -f $TAOBAO_JAVA ] ; then
-        JAVA=$TAOBAO_JAVA
+  	JAVA=$ALIBABA_JAVA
+  elif [ -f $ALIBABA_JAVA ] ; then
+  	JAVA=$TAOBAO_JAVA
   else
-        echo "Cannot find a Java JDK. Please set either set JAVA or put java (>=1.5) in your PATH." 2>&2
-    	exit 1
+  	echo "Cannot find a Java JDK. Please set either set JAVA or put java (>=1.5) in your PATH." 2>&2
+    exit 1
   fi
 fi
-
 
 case "$#" 
 in
@@ -50,16 +61,26 @@ in
 	;;
 1 )	
 	var=$*
-	if [ -f $var ] ; then 
-		otter_conf=$var
+	if [ -d $var ] 
+	then 
+		otterNodeIdFile=$var
+        logback_configurationFile=$base/conf/logback.xml
+	elif [ -f $var ] ; then 
+		otterNodeIdFile=$base/conf/nid
+        logback_configurationFile=$var
 	else
 		echo "THE PARAMETER IS NOT CORRECT.PLEASE CHECK AGAIN."
         exit
 	fi;;
 2 )	
-	var=$1
-	if [ -f $var ] ; then
-		otter_conf=$var
+	var1=$1
+	var2=$2
+	if [ -d $var1 -a -f $var2 ] ; then
+		otterNodeIdFile=$var1
+		logback_configurationFile=$var2
+	elif [ -d $var2 -a -f $var1 ] ; then  
+		otterNodeIdFile=$var2
+		logback_configurationFile=$var1
 	else 
 		if [ "$1" = "debug" ]; then
 			DEBUG_PORT=$2
@@ -72,7 +93,6 @@ in
 	exit;;
 esac
 
-
 str=`file $JAVA | grep 64-bit`
 if [ -n "$str" ]; then
 	JAVA_OPTS="-server -Xms2048m -Xmx3072m -Xmn1024m -XX:SurvivorRatio=2 -XX:PermSize=96m -XX:MaxPermSize=256m -Xss256k -XX:-UseAdaptiveSizePolicy -XX:MaxTenuringThreshold=15 -XX:+DisableExplicitGC -XX:+UseConcMarkSweepGC -XX:+CMSParallelRemarkEnabled -XX:+UseCMSCompactAtFullCollection -XX:+UseFastAccessorMethods -XX:+UseCMSInitiatingOccupancyOnly -XX:+HeapDumpOnOutOfMemoryError"
@@ -81,27 +101,27 @@ else
 fi
 
 JAVA_OPTS=" $JAVA_OPTS -Djava.awt.headless=true -Djava.net.preferIPv4Stack=true -Dfile.encoding=UTF-8"
-OTTER_OPTS="-DappName=otter-manager -Ddubbo.application.logger=slf4j -Dlogback.configurationFile=$logback_configurationFile -Dotter.conf=$otter_conf"
+OTTER_OPTS="-DappName=otter-node -Ddubbo.application.logger=slf4j -Dlogback.configurationFile=$logback_configurationFile -Dnid=$(cat $otterNodeIdFile)"
 
-if [ -e $otter_conf -a -e $logback_configurationFile ]
+if [ -e $otterNodeIdFile -a -e $logback_configurationFile ]
 then 
-	
 	for i in $base/lib/*;
-		do CLASSPATH=$i:"$CLASSPATH";
+	do CLASSPATH=$i:"$CLASSPATH";
 	done
- 	CLASSPATH="$base:$base/conf:$CLASSPATH";
- 	
- 	echo "cd to $bin_abs_path for workaround relative path"
-  	cd $bin_abs_path
- 	
+	CLASSPATH="$base/conf:$CLASSPATH";
+ 
 	echo LOG CONFIGURATION : $logback_configurationFile
-	echo otter conf : $otter_conf 
+	echo Otter nodeId file : $otterNodeIdFile 
 	echo CLASSPATH :$CLASSPATH
-	$JAVA $JAVA_OPTS $JAVA_DEBUG_OPT $OTTER_OPTS -classpath .:$CLASSPATH com.alibaba.otter.manager.deployer.OtterManagerLauncher 1>>$base/logs/manager.log 2>&1
+
+  echo "cd to $bin_abs_path for workaround relative path"
+  cd $bin_abs_path
+
+	$JAVA $JAVA_OPTS $JAVA_DEBUG_OPT $OTTER_OPTS -classpath .:$CLASSPATH com.alibaba.otter.node.deployer.OtterLauncher 1>>$base/logs/node/node.log 2>&1
 	echo $! > $base/bin/otter.pid 
-	
-	echo "cd to $current_path for continue"
-  	cd $current_path
+
+  echo "cd to $current_path for continue"
+  cd $current_path
 else 
-	echo "otter conf("$otter_conf") OR log configration file($logback_configurationFile) is not exist,please create then first!"
+	echo "otterNodeIdFile file("$otterNodeIdFile") OR log configration file($logback_configurationFile) is not exist,please create then first!"
 fi

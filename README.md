@@ -88,7 +88,7 @@ vim lib/jmockit-0.999.10.pom
 ![target](attachments/target.png)
 
 
-## 2、manager 部署
+## 2、构建 manager 镜像
 
 ### 2.1 创建**manager.deployer-4.2.18/manager**目录并解压manager.deployer-4.2.18.tar.gz到该目录
 
@@ -115,6 +115,78 @@ tar czvf manager.deployer-4.2.18.tar.gz manager.deployer-4.2.18
 ```
 
 ![dabao1](attachments/dabao1.png)
+
+### 2.4 制作docker镜像
+
+- 编写Dockerfile （基础镜像地址：https://github.com/liuweicode/docker-image-base/tree/main/openjdk）
+- 编写构建脚本 build.sh
+
+```
+sh build.sh
+```
+
+## 3、构建 node 镜像
+
+### 3.1 创建**node.deployer-4.2.18/node**目录并解压node.deployer-4.2.18.tar.gz到该目录
+
+```
+mkdir -p node/node.deployer-4.2.18
+tar zxvf otter-otter-4.2.18/target/node.deployer-4.2.18.tar.gz -C node/node.deployer-4.2.18
+```
+
+### 3.2 让启动脚本作为前台进程保持运行
+
+```
+cd node
+vim node.deployer-4.2.18/bin/startup.sh
+```
+
+删除启动命令最后一个 **&** 符号；
+
+![delete2](attachments/delete2.png)
+
+
+### 3.3 打包
+
+```
+tar czvf node.deployer-4.2.18.tar.gz node.deployer-4.2.18
+```
+![temp_2022-09-21-11-51-58](attachments/temp_2022-09-21-11-51-58.png)
+
+### 2.4 制作docker镜像
+
+- 编写Dockerfile （基础镜像地址：https://github.com/liuweicode/docker-image-base/tree/main/openjdk）
+- 编写构建脚本 build.sh
+
+```
+sh build.sh
+```
+
+## 4、创建configmap
+
+创建 **config** 目录，并 将默认配置文件复制过来；
+```
+mkdir config
+cp manager/manager.deployer-4.2.18/conf/otter.properties config/otter-manager.properties
+cp node/node.deployer-4.2.18/conf/otter.properties config/otter-node.properties
+```
+
+### 4.1 修改 **otter-manager.properties** 
+
+![temp_2022-09-21-12-58-21](attachments/temp_2022-09-21-12-58-21.png)
+
+### 4.2 修改 **otter-node.properties**
+
+![temp_2022-09-21-12-59-05](attachments/temp_2022-09-21-12-59-05.png)
+
+### 4.3 创建configmap
+
+```
+cd config
+kubectl create namespace uat-otter
+kubectl create configmap uat-otter-config --from-file=otter-manager.properties --from-file=otter-node.properties -n uat-otter
+```
+
 
 
 
