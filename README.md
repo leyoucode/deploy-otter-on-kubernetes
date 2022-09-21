@@ -187,6 +187,59 @@ kubectl create namespace uat-otter
 kubectl create configmap uat-otter-config --from-file=otter-manager.properties --from-file=otter-node.properties -n uat-otter
 ```
 
+## 4、部署 otter manager
+
+### 4.1 初始化otter manager系统表
+
+参考：https://github.com/alibaba/otter/wiki/Manager_Quickstart
+
+
+下载：
+
+```
+wget https://raw.github.com/alibaba/otter/master/manager/deployer/src/main/resources/sql/otter-manager-schema.sql
+```
+
+载入：
+
+```
+source otter-manager-schema.sql
+```
+
+### 4.2 搭建ZooKeeper集群
+
+参考：[deploy-zookeeper-cluster-on-kubernetes](https://github.com/liuweicode/deploy-zookeeper-cluster-on-kubernetes)
+
+### 4.3 编写 otter-manager.yaml
+
+https://github.com/liuweicode/deploy-otter-on-kubernetes/blob/main/manager/otter-manager.yaml
+
+### 4.4 编写 otter-node.yaml
+
+https://github.com/liuweicode/deploy-otter-on-kubernetes/blob/main/node/otter-node.yaml
+
+重点关注以下行：
+
+![temp_2022-09-21-13-26-40](attachments/temp_2022-09-21-13-26-40.png)
+
+## 5、配置
+
+![temp_2022-09-21-13-29-06](attachments/temp_2022-09-21-13-29-06.png)
+
+
+[使用介绍](https://github.com/alibaba/otter/wiki/Manager%E4%BD%BF%E7%94%A8%E4%BB%8B%E7%BB%8D)
+
+TODO
+
+
+
+
+
+
+
+
+
+
 
 
 

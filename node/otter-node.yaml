@@ -1,0 +1,88 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: uat-otter-node-svc
+  namespace: uat-otter
+  labels:
+    app: uat-otter-node
+spec:
+  ports:
+  - port: 2090
+    name: tcp
+  - port: 2088
+    name: rpc # 机器端口 ==> 和manager/node之间RPC通讯的端口
+  - port: 9090
+    name: node-http # 下载端口 ==> 和node之间HTTP通讯的端口
+  clusterIP: None
+  selector:
+    app: uat-otter-node
+
+---
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: uat-otter-node
+  name: uat-otter-node
+  namespace: uat-otter
+spec:
+  podManagementPolicy: OrderedReady
+  replicas: 3
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: uat-otter-node
+  serviceName: uat-otter-node-svc
+  template:
+    metadata:
+      labels:
+        app: uat-otter-node
+    spec:
+      containers:
+      - image: toplist-registry-vpc.cn-shanghai.cr.aliyuncs.com/88/tl-otter:uat-node-4.2.18
+        imagePullPolicy: Always
+        name: uat-otter-node
+        command:
+        - "sh"
+        - "-c"
+        - >
+          echo $(( $(cat /etc/hosts | grep otter | awk '{print($3)}' | awk '{split($0,array,"-")} END{print array[4]}') + 1 )) > /usr/local/node.deployer-4.2.18/conf/nid;/usr/local/node.deployer-4.2.18/bin/startup.sh
+        ports:
+        - containerPort: 2090
+          name: tcp
+          protocol: TCP
+        - containerPort: 2088
+          name: rpc
+          protocol: TCP
+        - containerPort: 9090
+          name: node-http
+          protocol: TCP
+        resources:
+          requests:
+            cpu: 100m
+            memory: 512Mi
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - name: tz
+          mountPath: /etc/localtime
+          subPath: Shanghai
+        - name: uat-otter-config
+          mountPath: /usr/local/node.deployer-4.2.18/conf/otter.properties
+          subPath: otter-node.properties
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: tz
+        configMap:
+          name: tz
+      - name: uat-otter-config
+        configMap:
+          name: uat-otter-config
+          items:
+          - key: otter-node.properties
+            path: otter-node.properties
