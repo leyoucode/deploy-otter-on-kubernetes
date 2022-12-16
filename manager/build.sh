@@ -6,14 +6,20 @@ rm -rf manager.deployer-4.2.18.tar.gz
 
 tar czvf manager.deployer-4.2.18.tar.gz manager.deployer-4.2.18
 
-docker build -t tl-otter:uat-otter-manager-4.2.18 -f Dockerfile .
+BUILD_NAME='tl-otter'
+BUILD_VERSION='pat-otter-manager-4.2.18'
+BUILD_HOST='toplist-registry.cn-shanghai.cr.aliyuncs.com/88'
 
-docker images | grep 'uat-otter-manager-4.2.18'
+docker build -t $BUILD_NAME:$BUILD_VERSION -f Dockerfile .
 
-IMAGETAG=$(docker images | grep 'uat-otter-manager-4.2.18' | head -n 1 | awk '{print $3}')
+docker images | grep $BUILD_VERSION
+
+IMAGETAG=$(docker images | grep $BUILD_VERSION | head -n 1 | awk '{print $3}')
 
 echo $IMAGETAG
 
-docker tag $IMAGETAG toplist-registry.cn-shanghai.cr.aliyuncs.com/88/tl-otter:uat-otter-manager-4.2.18
+docker tag $IMAGETAG $BUILD_HOST/$BUILD_NAME:$BUILD_VERSION
 
-docker push toplist-registry.cn-shanghai.cr.aliyuncs.com/88/tl-otter:uat-otter-manager-4.2.18
+docker push $BUILD_HOST/$BUILD_NAME:$BUILD_VERSION
+
+
